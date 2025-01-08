@@ -3,24 +3,32 @@ const { Liquidity, Token, TokenAmount, Percent, TxVersion, parseBigNumberish, LI
 const { getTokenAccountsByOwner } = require("./controllers/util");
 const { raydiumApiSwap } = require('./controllers/swapToken');
 const bs58 = require('bs58');
+const { poolDataFilter } = require('./controllers/poolDataFilter');
+const { getPoolData } = require('./controllers/getPoolData');
 
 require('dotenv').config();
 
 (async() => {
-    const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=c606f118-a4bf-4739-b1a1-c6c2dc4675c7", "confirmed");
+    const connection = new Connection("https://withered-chaotic-rain.solana-mainnet.quiknode.pro/2adcb441bbd017922a33adaa5ebbddb9b4287c82", "confirmed");
 
-    const poolId = new PublicKey('4Mf62F6prBGwrmEr9qjjr9ZtgGYzKSiRrvRz2Ry5pnCJ');
+    const swapSide = "buy";
+    const swapAmount = 1;
+    const tokenAddress = "eL5fUxj2J4CiQsmW85k5FG9DvuQjjUoBHoQBi2Kpump";
+
+    const poolList = await getPoolData(tokenAddress);
+    const poolPublicKey = poolDataFilter(poolList)[0].id;
+
+    const poolId = new PublicKey(poolPublicKey);
     const marketProgramId = new PublicKey(process.env.MARKET_PROGRAM_ID);
 
     const privateKey = bs58.default.decode(process.env.WALLET_PRIVATE_KEY);
-    const poolData = await connection.getAccountInfo(poolId);
+    // const poolData = await connection.getAccountInfo(poolId);
     // Create the Keypair
-    const data = LIQUIDITY_STATE_LAYOUT_V4.decode(poolData.data);
-    console.log("data ===>", data);
+    // const data = LIQUIDITY_STATE_LAYOUT_V4.decode(poolData.data);
     const wallet = Keypair.fromSecretKey(privateKey);
     // console.log("pooldata ===>", poolData);
 
-    raydiumApiSwap(connection, 632.0008, "buy", wallet, poolId, marketProgramId, 9, 6)
+    raydiumApiSwap(connection, 1, "buy", wallet, poolId, marketProgramId, 9, 6)
         .then(data => console.log(data))
         .catch(err => console.error(err));
 })();

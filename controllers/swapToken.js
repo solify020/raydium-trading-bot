@@ -1,4 +1,4 @@
-const { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction } = require("@solana/web3.js");
+const { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction, ComputeBudgetProgram } = require("@solana/web3.js");
 const { Liquidity, Token, TokenAmount, Percent, TxVersion } = require("@raydium-io/raydium-sdk");
 const { fetchPoolKeys } = require("./util_mainnet");
 const { getTokenAccountsByOwner } = require("./util");
@@ -54,7 +54,19 @@ async function raydiumApiSwap(connection, amount, side, ownerKeypair, pairing, m
         }
 
         // Create and prepare transaction
-        const transaction = new Transaction();
+        // const transaction = new Transaction();
+
+        const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 5000000
+      });
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 900000
+      });
+      const recentBlockhash = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: recentBlockhash.blockhash,
+      }).add(modifyComputeUnits).add(addPriorityFee);
+
         const simpleInstruction = await Liquidity.makeSwapInstructionSimple({
             connection,
             poolKeys,
@@ -83,23 +95,26 @@ async function raydiumApiSwap(connection, amount, side, ownerKeypair, pairing, m
 
         // Send and confirm the transaction
         const signature = await sendAndConfirmTransaction(connection, transaction, [ownerKeypair], { commitment: 'confirmed' });
+        console.log(signature)
 
         // Check transaction confirmation status
-        const checkTransactionError = async (startTime, signature) => {
-            while (Date.now() - startTime <= 30000) {
-                const status = await connection.getSignatureStatus(signature);
-                if (status.value?.confirmationStatus === 'confirmed') {
-                    if (status.value?.err) {
-                        throw new Error("Transaction Failed");
-                    }
-                    return signature;
-                }
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-            throw new Error("Transaction not processed");
-        };
+        // const checkTransactionError = async (startTime, signature) => {
+        //     while (Date.now() - startTime <= 30000) {
+        //         const status = await connection.getSignatureStatus(signature);
+        //         if (status.value?.confirmationStatus === 'confirmed') {
+        //             if (status.value?.err) {
+        //                 throw new Error("Transaction Failed");
+        //             }
+        //             return signature;
+        //         }
+        //         await new Promise((resolve) => setTimeout(resolve, 5000));
+        //     }
+        //     throw new Error("Transaction not processed");
+        // };
 
-        return await checkTransactionError(Date.now(), signature);
+        // return await checkTransactionError(Date.now(), signature);
+        
+        return signature
 
     } catch (err) {
         console.error('Swap error:', err);
