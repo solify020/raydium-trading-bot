@@ -9,7 +9,7 @@ const { getPoolData } = require('./controllers/getPoolData');
 require('dotenv').config();
 
 (async() => {
-    const connection = new Connection("https://withered-chaotic-rain.solana-mainnet.quiknode.pro/2adcb441bbd017922a33adaa5ebbddb9b4287c82", "confirmed");
+    const connection = new Connection(process.env.RPC_URL, "confirmed");
 
     const swapSide = "buy";
     const swapAmount = 1;
@@ -28,7 +28,7 @@ require('dotenv').config();
     const wallet = Keypair.fromSecretKey(privateKey);
     // console.log("pooldata ===>", poolData);
 
-    raydiumApiSwap(connection, 1, "buy", wallet, poolId, marketProgramId, 9, 6)
+    raydiumApiSwap(connection, swapAmount, swapSide, wallet, poolId, marketProgramId, 9, 6)
         .then(data => console.log(data))
         .catch(err => console.error(err));
 })();
